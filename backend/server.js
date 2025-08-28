@@ -2,18 +2,25 @@ const express = require("express");
 const cors = require("cors");
 const chatRoute = require('./routes/chat');
 require('dotenv').config();
+const axios = require('axios');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_SECRET = process.env.GEMINI_API_SECRET;
 
 const app = express();
+
+// Middleware
+app.use(express.json());
 app.use(cors());
 
+// Routes
 app.use('/api', chatRoute);
 
-app.use(express.json())
+app.get("/", (req, res) => {
+  res.send("✅ Server is running!");
+});
 
-// Mock responses for now (Later: Replace with Gemini AI API call)
+// Mock quote route
 const sampleQuotes = {
   happy: "Keep smiling, the world needs your light! 🌞",
   sad: "Tough times don’t last, but tough people do. 💪",
@@ -21,37 +28,31 @@ const sampleQuotes = {
   default: "No matter the mood, remember: You are amazing! 🌟",
 };
 
-app.get("/", (req, res) => {
-  res.send("✅ Server is running!");
-});
-
 app.post("/get-quote", (req, res) => {
   const mood = req.body.mood.toLowerCase();
   const quote = sampleQuotes[mood] || sampleQuotes.default;
   res.json({ quote });
 });
 
-console.log("Gemini API Key:", GEMINI_API_KEY); // For testing only
-
-const axios = require('axios');
-
+// Gemini API testing (optional, needs proper auth)
 async function getAccountBalance() {
   try {
     const response = await axios.get('https://api.gemini.com/v1/balances', {
       headers: {
         'X-GEMINI-APIKEY': GEMINI_API_KEY,
-        'X-GEMINI-PAYLOAD': '',      // depends on their auth requirements
-        'X-GEMINI-SIGNATURE': ''     // depends on their auth requirements
+        'X-GEMINI-PAYLOAD': '',      // TODO: set payload
+        'X-GEMINI-SIGNATURE': ''     // TODO: set signature
       }
     });
     console.log(response.data);
   } catch (error) {
-    console.error(error.response.data);
+    console.error(error.response?.data || error.message);
   }
 }
 
-getAccountBalance();
+// getAccountBalance(); // Uncomment once auth is ready
 
+// Server listen
 app.listen(8000, () => {
-  console.log("🚀 Server running on http://localhost:5000");
+  console.log("🚀 Server running on http://localhost:8000");
 });
