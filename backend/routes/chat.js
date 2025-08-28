@@ -85,9 +85,7 @@ Now respond to the user's input in a thoughtful and motivational way.
 // SELECT PROMPT
 // =======================
 
-// Options: 'zero' | 'one' | 'multi' | 'dynamic' | 'cot'
-// Change this value to switch between prompting types
-const PROMPT_TYPE = 'dynamic';
+const PROMPT_TYPE = 'dynamic'; // Change: zero | one | multi | dynamic | cot
 
 function selectPrompt(userMessage) {
   switch (PROMPT_TYPE) {
@@ -107,12 +105,23 @@ function selectPrompt(userMessage) {
 }
 
 // =======================
+// EVALUATION DATASET
+// =======================
+
+const evaluationDataset = [
+  "I feel stressed and anxious today.",
+  "I am feeling sad and lonely.",
+  "I feel happy and excited!",
+  "I feel unmotivated about my work.",
+  "I feel nervous about my exams."
+];
+
+// =======================
 // POST ROUTE
 // =======================
 
 router.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
-
   const systemPrompt = selectPrompt(userMessage);
 
   const messages = [
@@ -140,6 +149,50 @@ router.post('/chat', async (req, res) => {
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: 'Something went wrong' });
   }
+});
+
+// =======================
+// TEST ROUTE
+// =======================
+
+router.get('/test', async (req, res) => {
+  const results = [];
+
+  for (const sampleInput of evaluationDataset) {
+    try {
+      const systemPrompt = selectPrompt(sampleInput);
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: sampleInput }
+      ];
+
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-3.5-turbo',
+          messages: messages
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+          }
+        }
+      );
+
+      results.push({
+        input: sampleInput,
+        output: response.data.choices[0].message.content
+      });
+    } catch (error) {
+      results.push({
+        input: sampleInput,
+        error: error.message
+      });
+    }
+  }
+
+  res.json(results);
 });
 
 module.exports = router;
