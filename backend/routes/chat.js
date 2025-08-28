@@ -105,18 +105,6 @@ function selectPrompt(userMessage) {
 }
 
 // =======================
-// EVALUATION DATASET
-// =======================
-
-const evaluationDataset = [
-  "I feel stressed and anxious today.",
-  "I am feeling sad and lonely.",
-  "I feel happy and excited!",
-  "I feel unmotivated about my work.",
-  "I feel nervous about my exams."
-];
-
-// =======================
 // POST ROUTE
 // =======================
 
@@ -144,55 +132,21 @@ router.post('/chat', async (req, res) => {
       }
     );
 
-    res.json({ reply: response.data.choices[0].message.content });
+    const aiReply = response.data.choices[0].message.content;
+
+    // Log token usage
+    if (response.data.usage) {
+      console.log("Tokens used:");
+      console.log("Prompt tokens:", response.data.usage.prompt_tokens);
+      console.log("Completion tokens:", response.data.usage.completion_tokens);
+      console.log("Total tokens:", response.data.usage.total_tokens);
+    }
+
+    res.json({ reply: aiReply });
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: 'Something went wrong' });
   }
-});
-
-// =======================
-// TEST ROUTE
-// =======================
-
-router.get('/test', async (req, res) => {
-  const results = [];
-
-  for (const sampleInput of evaluationDataset) {
-    try {
-      const systemPrompt = selectPrompt(sampleInput);
-      const messages = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: sampleInput }
-      ];
-
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: 'gpt-3.5-turbo',
-          messages: messages
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-          }
-        }
-      );
-
-      results.push({
-        input: sampleInput,
-        output: response.data.choices[0].message.content
-      });
-    } catch (error) {
-      results.push({
-        input: sampleInput,
-        error: error.message
-      });
-    }
-  }
-
-  res.json(results);
 });
 
 module.exports = router;
