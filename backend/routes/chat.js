@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const fetch = require('node-fetch'); // or axios if you prefer
+const axios = require('axios');
 
 // =======================
 // PROMPTS
@@ -65,16 +65,46 @@ Respond to the user based on their mood and provide a motivational or comforting
 `;
 }
 
+// Chain-of-Thought system prompt
+const chainOfThoughtPrompt = `
+You are AuraBot, a friendly AI best friend. 
+Your job is to cheer up the user, provide mood-relief, and suggest positive quotes. 
+Always respond warmly, empathetically, and positively.
+
+Follow this approach (Chain of Thought):
+1. Read the user's input carefully.
+2. Identify the user's mood or emotion.
+3. Think about the most empathetic way to address the user's feelings.
+4. Choose a positive or motivational quote that fits the mood.
+5. Combine your understanding and the quote into a final empathetic response.
+
+Now respond to the user's input in a thoughtful and motivational way.
+`;
+
 // =======================
 // SELECT PROMPT
 // =======================
 
-// Options: zeroShotPrompt | oneShotPrompt | multiShotPrompt | dynamicPrompt
-// Example: Using dynamic prompting
-// const systemPrompt = zeroShotPrompt; 
-// const systemPrompt = oneShotPrompt; 
-// const systemPrompt = multiShotPrompt; 
-// For dynamic prompting, systemPrompt will be generated inside the route
+// Options: 'zero' | 'one' | 'multi' | 'dynamic' | 'cot'
+// Change this value to switch between prompting types
+const PROMPT_TYPE = 'dynamic';
+
+function selectPrompt(userMessage) {
+  switch (PROMPT_TYPE) {
+    case 'zero':
+      return zeroShotPrompt;
+    case 'one':
+      return oneShotPrompt;
+    case 'multi':
+      return multiShotPrompt;
+    case 'dynamic':
+      return getDynamicPrompt(userMessage);
+    case 'cot':
+      return chainOfThoughtPrompt;
+    default:
+      return zeroShotPrompt;
+  }
+}
 
 // =======================
 // POST ROUTE
@@ -83,8 +113,7 @@ Respond to the user based on their mood and provide a motivational or comforting
 router.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
 
-  // If using dynamic prompting, generate prompt per user input
-  const systemPrompt = getDynamicPrompt(userMessage);
+  const systemPrompt = selectPrompt(userMessage);
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -92,23 +121,23 @@ router.post('/chat', async (req, res) => {
   ];
 
   try {
-    // Call AI API (OpenAI in this example)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
         model: 'gpt-3.5-turbo',
         messages: messages
-      })
-    });
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        }
+      }
+    );
 
-    const data = await response.json();
-    res.json({ reply: data.choices[0].message.content });
+    res.json({ reply: response.data.choices[0].message.content });
   } catch (error) {
-    console.error(error);
+    console.error(error.response?.data || error.message);
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
