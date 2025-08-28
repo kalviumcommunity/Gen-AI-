@@ -50,12 +50,31 @@ AI: "Yay! That’s wonderful to hear! 🌟 Keep spreading your joy! Here's a quo
 Now respond to the user's input in a similar empathetic and motivational way.
 `;
 
+// Dynamic system prompt generator
+function getDynamicPrompt(userMood) {
+  return `
+You are AuraBot, a friendly AI best friend. 
+Your job is to cheer up the user, provide mood-relief, and suggest positive quotes. 
+Always respond warmly, empathetically, and positively.
+
+User’s current mood: "${userMood}"
+
+Follow RTFC: Read the user's input carefully, Think about context, Formulate a helpful response, and Communicate clearly.
+
+Respond to the user based on their mood and provide a motivational or comforting quote that fits their feelings.
+`;
+}
+
 // =======================
 // SELECT PROMPT
 // =======================
 
-// Toggle between zero-shot, one-shot, or multi-shot
-const systemPrompt = multiShotPrompt; // Change to zeroShotPrompt or oneShotPrompt as needed
+// Options: zeroShotPrompt | oneShotPrompt | multiShotPrompt | dynamicPrompt
+// Example: Using dynamic prompting
+// const systemPrompt = zeroShotPrompt; 
+// const systemPrompt = oneShotPrompt; 
+// const systemPrompt = multiShotPrompt; 
+// For dynamic prompting, systemPrompt will be generated inside the route
 
 // =======================
 // POST ROUTE
@@ -63,6 +82,9 @@ const systemPrompt = multiShotPrompt; // Change to zeroShotPrompt or oneShotProm
 
 router.post('/chat', async (req, res) => {
   const userMessage = req.body.message;
+
+  // If using dynamic prompting, generate prompt per user input
+  const systemPrompt = getDynamicPrompt(userMessage);
 
   const messages = [
     { role: 'system', content: systemPrompt },
